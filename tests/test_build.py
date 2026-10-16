@@ -143,3 +143,28 @@ def test_build_shell(unique_tmp_path: Path, bobfile: Path, builddir: Path) -> No
     ):
         build(builddir, bobfile)
         assert built_magic_path.read_text() == "modified magic\n"
+
+
+def test_build_glob_doesnt_break_after_deleted_folders(
+    unique_tmp_path: Path, bobfile: Path, builddir: Path
+) -> None:
+    bobfile.write_text(
+        dedent("""
+            from bob.prelude import *
+            
+            glob("**/*.txt", "src")
+    """)
+    )
+
+    dummy_path = unique_tmp_path / "src" / "dummy"
+    dummy_path.mkdir(parents=True)
+
+    build(builddir, bobfile)
+    assert get_build_ninja_path(builddir).is_file()
+
+    dummy_path.rmdir()
+
+    with (
+        assert_modification_time_increases(get_build_ninja_path(builddir)),
+    ):
+        build(builddir, bobfile)

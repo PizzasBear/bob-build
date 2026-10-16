@@ -45,7 +45,7 @@ def read(path: RuleInput.Type, text: bool = False) -> str | bytes:
     path = RuleInput.resolve(path, path_only=True)
 
     context = Context.current()
-    context.configure_implicit_dependencies.add(path)
+    context.configure_phony_implicit_dependencies.add(path)
 
     if text:
         return path.read_text()
@@ -62,8 +62,10 @@ def glob(pattern: str, path: None | str | Path = None) -> list[Path]:
     src = srcdir()
     path = src / path
 
-    context.configure_implicit_dependencies.add(path)
-    context.configure_implicit_dependencies.update(
+    assert path.is_dir(), "The path to glob must be a directory!"
+
+    context.configure_phony_implicit_dependencies.add(path)
+    context.configure_phony_implicit_dependencies.update(
         p for p in path.rglob("*") if p.is_dir()
     )
 

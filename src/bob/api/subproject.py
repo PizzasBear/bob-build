@@ -22,7 +22,7 @@ def _get_bobfile(context: Context, path: str | Path) -> Path:
 def include(path: str | Path) -> None:
     context = Context.current()
     bobfile = _get_bobfile(context, path)
-    context.configure_implicit_dependencies.add(bobfile)
+    context.configure_phony_implicit_dependencies.add(bobfile)
 
     current = inspect.currentframe()
     assert current is not None

@@ -38,7 +38,8 @@ class Context:
         self.used_configs: set[str] = set()
         self.writer: None | Writer = None
         self.compdb_writer: None | Writer = None
-        self.configure_implicit_dependencies: set[RuleInput.Type] = {
+        self.configure_implicit_dependencies: set[RuleInput.Type] = set()
+        self.configure_phony_implicit_dependencies: set[RuleInput.Type] = {
             FileTarget(get_configs_path(builddir))
         }
         self.variables: dict[str, Any] = {}
@@ -86,6 +87,19 @@ class Context:
     ) -> None:
         from bob.api.rule import Rule, RuleInput
 
+        assert self.writer is not None
+        self.writer.build(
+            sorted(
+                [
+                    RuleInput.resolve(
+                        dependency, path_only=True, convert_to_string=True
+                    )
+                    for dependency in self.configure_phony_implicit_dependencies
+                ]
+            ),
+            "phony",
+        )
+
         Rule(
             "FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile",
             description="CONFIGURE",
@@ -94,7 +108,8 @@ class Context:
         ).build(
             str(get_build_ninja_path(self.builddir).relative_to(self.builddir)),
             implicit=sorted(
-                self.configure_implicit_dependencies,
+                self.configure_implicit_dependencies
+                | self.configure_phony_implicit_dependencies,
                 key=lambda i: RuleInput.resolve(
                     i, path_only=True, convert_to_string=True
                 ),
@@ -140,7 +155,7 @@ class Context:
         if validate_configs:
             self.used_configs = set()
 
-        self.configure_implicit_dependencies.add(bobfile)
+        self.configure_phony_implicit_dependencies.add(bobfile)
 
         runpy.run_path(str(bobfile))
 
